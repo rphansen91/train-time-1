@@ -55,31 +55,36 @@ $("#add-train-btn").on("click", function(event) {
 database.ref().on("child_added", function(childSnapshot, prevChildKey) {
 
   console.log(childSnapshot.val());
-
   // Store everything into a variable.
-  var trainName = childSnapshot.val().name;
-  var trainDestination = childSnapshot.val().destination;
-  var trainTime = childSnapshot.val().time;
-  var trainFrequency = childSnapshot.val().frequency;
-
-  // Train Info
-  console.log(trainName);
-  console.log(trainDestination);
-  console.log(trainTime);
-  console.log(trainFrequency);
-
-
-  var trainTimePretty = moment.unix(trainTime).format("hh:mm a");
-  console.log(trainTimePretty);
-  var diffTime = moment().diff(moment([trainTimePretty]), "minutes");
-  console.log(diffTime);
-  var tRemainder = diffTime % trainFrequency;
-  var minutesAway = trainFrequency - tRemainder;
-  var minutes = moment();
-  var nextTrain = moment().add(minutes).format("hh:mm a");
-
-
+  var train = childSnapshot.val()
+  var times = calculate(train)
   // Add each train's data into the table
-  $("#train-table > tbody").append("<tr><td>" + trainName + "</td><td>" + trainDestination + "</td><td>" +
-   + trainFrequency + "</td><td>" + nextTrain + "</td><td>" + minutesAway + "</td></tr>");
+  var row = $('<tr>')
+  row.append($('<td></td>').text(train.name))
+  row.append($('<td></td>').text(train.destination))
+  row.append($('<td></td>').text(train.frequency))
+
+  var next$ = $('<td></td>').text(times.next)
+  var away$ = $('<td></td>').text(times.away)
+  row.append(next$)
+  row.append(away$)
+
+  setInterval(function () {
+    times = calculate(train)
+    next$.text(times.next)
+    away$.text(times.away)
+  }, 1000)
+
+  $("#train-table > tbody").append(row);
 });
+
+function calculate (train) {
+  var trainTimePretty = moment.unix(train.time).format("hh:mm a");
+  var diffTime = moment().diff(moment([trainTimePretty]), "minutes");
+  var tRemainder = diffTime % train.frequency;
+  var minutesAway = train.frequency - tRemainder;
+  return {
+    away: minutesAway,
+    next: moment().add(minutesAway, 'm').format("hh:mm a")
+  }
+}
